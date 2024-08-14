@@ -26,19 +26,19 @@ def parse_filename(filename):
 
 def write_sorted_table(file, configs, sort_key):
     file.write(
-        "| Quantization | Quantize TE | Fuse QKV | Memory (GB) | Latency (s) |\n"
+        "| Data Type | Quantization | Quantize TE | Fuse QKV | Memory (GB) | Latency (s) |\n"
     )
     file.write(
-        "|--------------|-------------|----------|-------------|-------------|\n"
+        "|-----------|--------------|-------------|----------|-------------|-------------|\n"
     )
 
     sorted_configs = sorted(configs.items(), key=lambda x: x[1][sort_key])
 
-    for (qtype, qte, fuse), metrics in sorted_configs:
+    for (dtype, qtype, qte, fuse), metrics in sorted_configs:
         qte_str = "Yes" if qte else "No"
         fuse_str = "Yes" if fuse else "No"
         file.write(
-            f"| {qtype.upper() or 'None':<12} | {qte_str:<11} | {fuse_str:<8} | {metrics['memory']:<11.3f} | {metrics['time']:<11.3f} |\n"
+            f"| {dtype:<9} | {qtype.upper() or 'None':<12} | {qte_str:<11} | {fuse_str:<8} | {metrics['memory']:<11.3f} | {metrics['time']:<11.3f} |\n"
         )
 
     file.write("\n")
@@ -73,8 +73,13 @@ def generate_markdown(input_dir, output_file):
                 if parsed is None:
                     continue
 
-                key = (parsed["ckpt"], parsed["bs"], parsed["dtype"])
-                config = (parsed["qtype"], parsed["qte"], parsed["fuse"])
+                key = (parsed["ckpt"], parsed["bs"])
+                config = (
+                    parsed["dtype"],
+                    parsed["qtype"],
+                    parsed["qte"],
+                    parsed["fuse"],
+                )
 
                 results[key][config] = {
                     "memory": float(info["memory"]),
@@ -87,25 +92,22 @@ def generate_markdown(input_dir, output_file):
         elif filename.endswith(".png"):
             parsed = parse_filename(filename.replace(".png", ""))
             if parsed:
-                key = (parsed["ckpt"], parsed["dtype"])
+                key = parsed["ckpt"]
                 image_files[key].append(filename)
                 image_titles[key].append(
-                    f"qtype: {parsed['qtype']}, qte: {parsed['qte']}, fuse: {parsed['fuse']}"
+                    f"dtype: {parsed['dtype']}, qtype: {parsed['qtype']}, qte: {parsed['qte']}, fuse: {parsed['fuse']}"
                 )
 
     with open(output_file, "w") as readme:
         readme.write("# Experiment Results\n\n")
 
-        for (ckpt, bs, dtype), configs in results.items():
-            readme.write(
-                f"## {ckpt.capitalize()} - Batch Size: {bs}, Data Type: {dtype}\n\n"
-            )
+        for (ckpt, bs), configs in results.items():
+            readme.write(f"## {ckpt.capitalize()} - Batch Size: {bs}\n\n")
 
             # Add image table
-            key = (ckpt, dtype)
-            if key in image_files:
+            if ckpt in image_files:
                 readme.write(
-                    create_image_table(image_files[key], image_titles[key], input_dir)
+                    create_image_table(image_files[ckpt], image_titles[ckpt], input_dir)
                 )
                 readme.write("\n")
 
