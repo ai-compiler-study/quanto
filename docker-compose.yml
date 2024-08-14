@@ -1,0 +1,46 @@
+services:
+  # GPU enabled
+  all: &dev
+    image: carpedm20/quanto:24.06-py3 
+    build:
+      dockerfile: ./Dockerfile
+    volumes:
+      - .:/app
+      - $HOME/.vscode-server:/root/.vscode-server
+      - $HOME/.zshrc:/root/.zshrc
+      - $HOME/.cache:/root/.cache
+      - $HOME/.npm:/root/.npm
+      - $HOME/.ipython:/root/.ipython
+      - $HOME/.zsh_history:/root/.zsh_history
+      - $HOME/.jupyter:/root/.jupyter
+      # - $HOME/.gitconfig:/root/.gitconfig
+      # Data
+      - $HOME/data:/root/data
+      # Local repos
+      - $HOME/git:/root/git
+    tty: true
+    ipc: host
+    stdin_open: true
+    network_mode: host
+    tmpfs:
+      - /tmp/docker
+    environment:
+      # https://github.com/AutoGPTQ/AutoGPTQ#quick-installation
+      - SHELL=/usr/bin/zsh
+      - TORCH_CUDA_ARCH_LIST=8.6;8.6+PTX;8.7;9.0;9.0+PTX
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+  gpu0:
+    <<: *dev
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: [ '0' ]
+              capabilities: [ gpu ]

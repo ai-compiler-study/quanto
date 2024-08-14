@@ -1,0 +1,1 @@
+{"batch_size": 1, "memory": "5.537", "time": "1.471", "dtype": "fp16", "qtype": "int8", "qte": 1, "exclude_layers": null, "fuse": 1}
